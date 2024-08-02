@@ -4,7 +4,7 @@ labelsmith
 ├── README.md
 ├── docs
 ├── output
-│   └── Shyft-0.0.1b3.dmg
+│   └── Shyft-0.0.1b4.dmg
 ├── poetry.lock
 ├── pyproject.toml
 ├── requirements.txt
@@ -63,6 +63,7 @@ labelsmith
 │       │               ├── LabelSTREAMIcon-512.png
 │       │               └── LabelSTREAMIcon-64.png
 │       ├── shyft
+│       │   ├── CHANGELOG.md
 │       │   ├── Shyft.py
 │       │   ├── __init__.py
 │       │   ├── __main__.py
@@ -117,4 +118,4 @@ labelsmith
 │   └── __init__.py
 └── tree.txt
 
-22 directories, 96 files
+22 directories, 97 files
