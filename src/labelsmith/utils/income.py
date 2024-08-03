@@ -39,8 +39,8 @@ then you earned ${gross:.2f} in gross income.
             net = round(gross - tax, 2)
             print(f"""
             
-To yield ${gross:.2f} in gross income at $
-{payrate:.2f}/hr, you would need to work {hours:.2f} hours.
+To yield ${gross:.2f} in gross income at ${payrate:.2f}/hr, 
+you would need to work {hours:.2f} hours.
 >  At a rate of {taxrate:.2f}, your tax liability would be ${tax:.2f}.
 >  Your net income would then be ${net:.2f}.
               
