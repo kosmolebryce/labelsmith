@@ -37,7 +37,7 @@ def load_config():
         config['Theme']['selected'] = 'aqua'
 
     if 'timer_topmost' not in config['Theme']:
-        config['Theme']['timer_topmost'] = 'False'
+        config['Theme']['timer_topmost'] = 'True'
     
     if 'Window' not in config:
         config['Window'] = {}
@@ -57,9 +57,15 @@ def update_color_setting(config, color_type, color_code):
     save_config(config)
 
 def save_config(config):
+    logger.debug("Saving configuration")
     with open(CONFIG_FILE, "w") as config_file:
         config.write(config_file)
     logger.debug(f"Configuration saved to {CONFIG_FILE}")
+    
+    # Add a verification step
+    verify_config = configparser.ConfigParser()
+    verify_config.read(CONFIG_FILE)
+    logger.debug(f"Verification: timer_topmost in saved config is {verify_config['Theme'].get('timer_topmost', 'Not found')}")
 
 def update_theme_setting(config, theme_name):
     config['Theme']['selected'] = theme_name

@@ -5,7 +5,7 @@ from labelsmith.shyft.core import config_manager, nltk_manager
 from labelsmith.shyft.core.autolog import Autolog
 from labelsmith.shyft.core.theme_manager import ThemeManager
 from labelsmith.shyft.core.data_manager import data_manager, logger
-from labelsmith.shyft.gui.menu import setup_menu
+from labelsmith.shyft.gui.menu import setup_menu, disable_topmost_menu, enable_topmost_menu
 from labelsmith.shyft.gui.entry_forms import ManualEntryForm, EditShiftForm
 from labelsmith.shyft.gui.dialogs import ViewLogsDialog, CalculateTotalsDialog
 from labelsmith.shyft.gui.timer_window import TimerWindow
@@ -21,12 +21,13 @@ class ShyftGUI:
         self.root = root
         self.root.title("Shyft")
         self.config = config_manager.load_config()
+        self.timer_topmost = self.config.getboolean('Theme', 'timer_topmost', fallback=True)
+        self.timer_topmost_var = tk.BooleanVar(value=self.timer_topmost)
         self.initialize_from_config()
         self.active_autolog = None
         self.time_color = self.config.get('Colors', 'time_color', fallback='#A78C7B')
         self.bg_color = self.config.get('Colors', 'bg_color', fallback='#FFBE98')
         self.btn_text_color = self.config.get('Colors', 'btn_text_color', fallback='#A78C7B')
-        self.timer_topmost = self.config.getboolean('Theme', 'timer_topmost', fallback=False)
         self.timer_window = None
         self.configure_styles()
         self.menu_bar = None
@@ -35,15 +36,16 @@ class ShyftGUI:
         self.file_menu = None
         self.settings_menu = None
         self.setup_menu()
+        self.enable_topmost_menu = enable_topmost_menu
+        self.disable_topmost_menu = disable_topmost_menu
+        self.disable_topmost_menu(self)
         self.create_widgets()
         self.refresh_view()
         self.root.resizable(True, False)
         self.root.protocol("WM_DELETE_WINDOW", self.on_quit)
         self.task_start_time = None
         self.caffeinate_process = None
-
-        logger.info("ShyftGUI initialized.")
-
+    
     def create_dictionary_lookup(self):
         self.dictionary_text = DictionaryLookupText(self.root)
         self.dictionary_text.pack(expand=True, fill='both')
@@ -99,7 +101,7 @@ class ShyftGUI:
         self.timer_window = TimerWindow(tk.Toplevel(self.root), 
                                         time_color=self.time_color, 
                                         bg_color=self.bg_color)
-        self.timer_window.root.attributes("-topmost", self.timer_topmost)
+        self.timer_window.root.attributes("-topmost", self.timer_topmost_var.get())
 
     def create_widgets(self):
         self.tree = ttk.Treeview(
@@ -408,6 +410,8 @@ class ShyftGUI:
             self.btn_text_color,
             self.config,
             self.menu_bar,
+            self.view_menu,
+            self.theme_menu,
             self.regain_focus,
             self.tree
         )
@@ -423,11 +427,16 @@ class ShyftGUI:
         logger.info("Application quit.")
 
     def toggle_timer_topmost(self):
+        current_state = self.config.getboolean('Theme', 'timer_topmost')
+        new_state = not current_state
+        
+        self.config['Theme']['timer_topmost'] = str(new_state)
+        config_manager.save_config(self.config)
+        
+        self.timer_topmost_var.set(new_state)
+        
         if self.timer_window:
-            current_topmost_state = self.timer_window.root.attributes("-topmost")
-            new_topmost_state = not current_topmost_state
-            self.timer_window.root.attributes("-topmost", new_topmost_state)
-            self.config.set("Theme", "timer_topmost", str(new_topmost_state))
-            config_manager.save_config(self.config)
-            self.timer_topmost_var.set(new_topmost_state)
-            logger.debug(f"Timer topmost state set to {new_topmost_state}.")
+            self.timer_window.root.attributes("-topmost", new_state)
+        
+        self.update_timer_topmost_menu()
+        logger.debug(f"Timer topmost state toggled to {new_state}")

@@ -4,6 +4,7 @@ import threading
 from datetime import datetime
 from labelsmith.shyft.gui.timer_window import TimerWindow
 from labelsmith.shyft.gui.custom_widgets import CustomTooltip, DictionaryLookupText, IndependentAskString
+from labelsmith.shyft.gui.menu import disable_topmost_menu, disable_theme_menu, enable_theme_menu, enable_topmost_menu
 from labelsmith.shyft.core.data_manager import data_manager
 from labelsmith.shyft.utils.time_utils import calculate_duration, format_to_two_decimals
 from labelsmith.shyft.utils.system_utils import prevent_sleep, allow_sleep, get_modifier_key
@@ -23,6 +24,8 @@ class Autolog:
         btn_text_color,
         config,
         menu_bar,
+        view_menu,
+        theme_menu,
         callback,
         tree):
         self.parent = parent
@@ -35,11 +38,18 @@ class Autolog:
         self.task_start_time = None
         self.caffeinate_process = None
         self.menu_bar = menu_bar
+        self.view_menu = view_menu
+        self.theme_menu = theme_menu
         self.parent.callback = callback
         self.parent.tree = tree
+        self.enable_theme_menu = enable_theme_menu
+        self.disable_theme_menu = disable_theme_menu
+        self.enable_topmost_menu = enable_topmost_menu
+        self.disable_topmost_menu = disable_topmost_menu
         
     def start(self):
-        self.disable_theme_menu()
+        self.disable_theme_menu(self)
+        self.enable_topmost_menu(self)
         shared_data = self.collect_shared_data()
         if shared_data is None:  # User cancelled
             return
@@ -72,7 +82,6 @@ class Autolog:
             self.timer_window.start()
             topmost_state = self.config.getboolean("Theme", "timer_topmost", fallback=False)
             self.timer_window.root.attributes("-topmost", topmost_state)
-            self.enable_topmost_menu()
 
         self.task_start_time = datetime.now()
 
@@ -226,8 +235,8 @@ class Autolog:
             self.allow_sleep()  # Ensure caffeinate is terminated when the app quits
             self.parent.grab_set()
             self.parent.tree.focus_set()
-            self.enable_theme_menu()  # Re-enable the Theme menu
-            self.disable_topmost_menu()
+            self.enable_theme_menu(self)  # Re-enable the Theme menu
+            self.disable_topmost_menu(self)
             self.parent.callback()
 
     def save_shift_markdown(self, shift_id: str):
@@ -294,8 +303,8 @@ class Autolog:
             self.timer_window.reset()
             self.timer_window.on_close()
             self.timer_window = None
-            self.enable_theme_menu()
-            self.disable_topmost_menu()
+            self.enable_theme_menu(self)
+            self.disable_topmost_menu(self)
         
     def create_shift_markdown(self, shift_id: str) -> str:
         markdown_content = f"""# `{shift_id}.md`
@@ -329,15 +338,3 @@ class Autolog:
     def allow_sleep(self):
         allow_sleep(self.caffeinate_process)
         self.caffeinate_process = None
-
-    def disable_theme_menu(self):
-        self.menu_bar.entryconfig("Theme", state="disabled")
-
-    def enable_theme_menu(self):
-        self.menu_bar.entryconfig("Theme", state="normal")
-
-    def enable_topmost_menu(self):
-        self.menu_bar.entryconfig("View", state="normal")
-
-    def disable_topmost_menu(self):
-        self.menu_bar.entryconfig("View", state="disabled")

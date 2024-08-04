@@ -50,10 +50,9 @@ def setup_view_menu(gui):
     gui.view_menu.add_checkbutton(
         label="Timer Always on Top",
         command=gui.toggle_timer_topmost,
-        variable=gui.timer_topmost_var,
+        variable=gui.timer_topmost_var
     )
     gui.menu_bar.add_cascade(label="View", menu=gui.view_menu)
-    disable_topmost_menu(gui)
 
 def setup_settings_menu(gui):
     logger.debug("Starting setup_settings_menu")
