@@ -30,7 +30,7 @@ The `labelsmith` package currently offers the following core modules:
    - Task metadata recording and note-taking interface
    - Local data persistence for shift entries and tasking history
    - Full CRUD operations for shift records
-   - Autologger functionality for streamlined task logging
+   - Autolog functionality for streamlined task logging
 
 2. **`utils`**: A collection of utility scripts aimed at optimizing annotator workflows:
    - `utils.income`: Includes the `simulate` function for modeling earnings scenarios based on various workload parameters

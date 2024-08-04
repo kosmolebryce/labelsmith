@@ -6,11 +6,10 @@ from labelsmith.shyft.utils.system_utils import get_modifier_key
 from labelsmith.shyft.gui.custom_widgets import IndependentAskString
 
 class ManualEntryForm:
-    def __init__(self, parent, callback):
+    def __init__(self, parent):
         self.parent = parent
         self.window = tk.Toplevel(parent)
         self.window.title("Manual Entry")
-        self.callback = callback
         self.create_widgets()
         self.window.grab_set()
         self.window.bind(f"<{get_modifier_key()}-w>", self.close_window)
@@ -65,7 +64,6 @@ class ManualEntryForm:
             formatted_id = f"{new_id:04d}"
             data_manager.add_shift(formatted_id, new_data)
             self.close_window()
-            self.callback()
             messagebox.showinfo("Success", f"Shift logged successfully. {new_data['Tasks completed']} tasks completed.")
         except ValueError as e:
             messagebox.showerror("Error", str(e))
@@ -82,16 +80,15 @@ class ManualEntryForm:
             raise ValueError("Invalid input for 'Hourly rate' or 'Tasks completed'. Please enter numerical values.")
 
     def close_window(self, event=None):
+        self.window.grab_release()
         self.window.destroy()
-        self.parent.focus_force()
 
 class EditShiftForm:
-    def __init__(self, parent, shift_id, callback):
+    def __init__(self, parent, shift_id):
         self.parent = parent
         self.window = tk.Toplevel(parent)
         self.window.title("Edit Shift")
         self.shift_id = shift_id
-        self.callback = callback
         self.shift_data = data_manager.get_shifts()[self.shift_id]
         self.create_widgets()
         self.window.grab_set()

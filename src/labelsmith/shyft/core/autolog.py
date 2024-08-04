@@ -13,7 +13,7 @@ from tkinter import simpledialog, messagebox, ttk
 
 logger = logging.getLogger("labelsmith")
 
-class Autologger:
+class Autolog:
     def __init__(
         self,
         parent,
@@ -26,8 +26,6 @@ class Autologger:
         callback,
         tree):
         self.parent = parent
-        self.parent.callback = callback
-        self.parent.tree = tree
         self.timer_window = timer_window
         self.time_color = time_color
         self.bg_color = bg_color
@@ -37,7 +35,9 @@ class Autologger:
         self.task_start_time = None
         self.caffeinate_process = None
         self.menu_bar = menu_bar
-
+        self.parent.callback = callback
+        self.parent.tree = tree
+        
     def start(self):
         self.disable_theme_menu()
         shared_data = self.collect_shared_data()
@@ -45,7 +45,6 @@ class Autologger:
             return
         self.prevent_sleep()
         self.attempt_task(shared_data)
-
 
     def collect_shared_data(self):
         shared_fields = [
@@ -212,22 +211,24 @@ class Autologger:
         try:
             if cancel or not self.collected_data:
                 if cancel:
-                    messagebox.showinfo("Cancelled", "Autologger process cancelled.")
+                    messagebox.showinfo("Cancelled", "Autolog process cancelled.")
             else:
                 shift_id = self.log_shift()
                 if shift_id:
                     self.save_shift_markdown(shift_id)
         finally:
             # Always perform these cleanup actions
-            if self.timer_window and tk.Toplevel.winfo_exists(self.timer_window.root):
+            if self.timer_window:
                 self.timer_window.reset()
                 self.timer_window.on_close()
                 self.timer_window = None
 
-        self.allow_sleep()  # Ensure caffeinate is terminated when the app quits
-        self.parent.grab_set()
-        self.parent.tree.focus_set()
-        self.parent.callback()
+            self.allow_sleep()  # Ensure caffeinate is terminated when the app quits
+            self.parent.grab_set()
+            self.parent.tree.focus_set()
+            self.enable_theme_menu()  # Re-enable the Theme menu
+            self.disable_topmost_menu()
+            self.parent.callback()
 
     def save_shift_markdown(self, shift_id: str):
         markdown_content = self.create_shift_markdown(shift_id)

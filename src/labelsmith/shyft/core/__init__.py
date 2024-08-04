@@ -1,14 +1,16 @@
 # shyft/core/__init__.py
 from . import (
+    autolog,
     config_manager,
     data_manager,
     nltk_manager,
-    autologger
+    theme_manager
     )
 
 __all__ = [
     "config_manager",
     "data_manager",
     "nltk_manager",
-    "autologger"
+    "autolog",
+    "theme_manager"
     ]

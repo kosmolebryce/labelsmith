@@ -3,8 +3,7 @@ from . import (
     file_utils,
     plotting,
     system_utils,
-    theme_manager,
-    time_utils
+    time_utils,
 )
 
 __all__ = [
@@ -12,6 +11,5 @@ __all__ = [
     "file_utils",
     "plotting",
     "system_utils",
-    "theme_manager",
     "time_utils"
 ]

@@ -10,91 +10,57 @@ import os
 from pathlib import Path
 
 class ViewLogsDialog:
-    def __init__(self, parent, tree, callback):
+    def __init__(self, parent, shift_id):
         self.parent = parent
         self.window = tk.Toplevel(parent)
-        self.window.title("View Logs")
-        self.window.geometry("480x640")
-        self.parent.tree = tree
-        self.parent.callback = callback
+        self.window.title(f"View Log - Shift {shift_id}")
+        self.window.geometry("480x480")
+        self.shift_id = shift_id
         self.create_widgets()
+        self.load_log_content()
+        
         self.window.bind(f"<{get_modifier_key()}-w>", self.close_window)
         self.window.bind(f"<{get_modifier_key()}-W>", self.close_window)
-
+        
         # Ensure the window has focus
         self.window.grab_set()
-        self.log_tree.focus_set()
-
-        # Select the first item (most recent log) if available and set focus
-        first_item = self.log_tree.get_children()
-        if first_item:
-            self.log_tree.selection_set(first_item[0])
-            self.log_tree.focus(first_item[0])
-            self.log_tree.event_generate("<<TreeviewSelect>>")
+        self.text_widget.focus_set()
 
     def create_widgets(self):
         self.window.grid_columnconfigure(0, weight=1)
-        self.window.grid_rowconfigure(1, weight=1)
-
-        tree_frame = ttk.Frame(self.window)
-        tree_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=(10, 5))
-        tree_frame.grid_columnconfigure(0, weight=1)
-        tree_frame.grid_rowconfigure(0, weight=1)
-
-        self.log_tree = ttk.Treeview(tree_frame, columns=["Log Files"], show="headings", height=4)
-        self.log_tree.heading("Log Files", text="Log Files")
-        self.log_tree.column("Log Files", anchor="w")
-        self.log_tree.grid(row=0, column=0, sticky="nsew")
-
-        tree_scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=self.log_tree.yview)
-        tree_scrollbar.grid(row=0, column=1, sticky="ns")
-        self.log_tree.configure(yscrollcommand=tree_scrollbar.set)
-
-        self.log_tree.tag_configure("highlight", background="#FFBE98")
-
-        log_files = get_log_files(Path(LOGS_DIR))
-
-        for log_file in log_files:
-            self.log_tree.insert("", "end", iid=log_file, values=[log_file])
+        self.window.grid_rowconfigure(0, weight=1)
 
         text_frame = ttk.Frame(self.window)
-        text_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(5, 10))
+        text_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         text_frame.grid_columnconfigure(0, weight=1)
         text_frame.grid_rowconfigure(0, weight=1)
 
         self.text_widget = tk.Text(text_frame, wrap="word")
         self.text_widget.grid(row=0, column=0, sticky="nsew")
 
-        text_scrollbar = ttk.Scrollbar(text_frame, orient="vertical", command=self.text_widget.yview)
-        text_scrollbar.grid(row=0, column=1, sticky="ns")
-        self.text_widget.configure(yscrollcommand=text_scrollbar.set)
+        scrollbar = ttk.Scrollbar(text_frame, orient="vertical", command=self.text_widget.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.text_widget.configure(yscrollcommand=scrollbar.set)
 
-        self.log_tree.bind("<<TreeviewSelect>>", self.on_log_selection)
+    def load_log_content(self):
+        log_file_path = Path(LOGS_DIR) / f"{self.shift_id}.md"
+        try:
+            with open(log_file_path, "r", encoding="utf-8") as file:
+                content = file.read()
+            self.text_widget.delete("1.0", tk.END)
+            self.text_widget.insert("1.0", content)
+        except FileNotFoundError:
+            self.text_widget.delete("1.0", tk.END)
+            self.text_widget.insert("1.0", f"Log file for shift {self.shift_id} not found.")
+        except Exception as e:
+            self.text_widget.delete("1.0", tk.END)
+            self.text_widget.insert("1.0", f"Error reading log file: {str(e)}")
 
-    def on_log_selection(self, event):
-        for item in self.log_tree.get_children():
-            self.log_tree.item(item, tags=())
-
-        selected_item = self.log_tree.selection()
-        if selected_item:
-            self.log_tree.item(selected_item[0], tags=("highlight",))
-
-            log_file_path = Path(LOGS_DIR) / selected_item[0]
-            try:
-                with open(log_file_path, "r", encoding="utf-8") as file:
-                    content = file.read()
-                self.text_widget.delete("1.0", tk.END)
-                self.text_widget.insert("1.0", content)
-            except Exception as e:
-                self.text_widget.delete("1.0", tk.END)
-                self.text_widget.insert("1.0", f"Error reading log file: {str(e)}")
-
-    def close_window(self, event):
+    def close_window(self, event=None):
         self.window.grab_release()
         self.window.destroy()
         self.parent.grab_set()
-        self.parent.tree.focus_set()
-        self.parent.callback()
+        self.parent.focus_set()
 
 class CalculateTotalsDialog:
     def __init__(self, parent):

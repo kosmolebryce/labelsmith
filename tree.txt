@@ -70,7 +70,7 @@ labelsmith
 │       │   ├── constants.py
 │       │   ├── core
 │       │   │   ├── __init__.py
-│       │   │   ├── autologger.py
+│       │   │   ├── autolog.py
 │       │   │   ├── config_manager.py
 │       │   │   ├── data_manager.py
 │       │   │   └── nltk_manager.py

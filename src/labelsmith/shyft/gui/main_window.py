@@ -1,7 +1,9 @@
+import platform
 import tkinter as tk
 from tkinter import ttk, messagebox
 from labelsmith.shyft.core import config_manager, nltk_manager
-from labelsmith.shyft.core.autologger import Autologger
+from labelsmith.shyft.core.autolog import Autolog
+from labelsmith.shyft.core.theme_manager import ThemeManager
 from labelsmith.shyft.core.data_manager import data_manager, logger
 from labelsmith.shyft.gui.menu import setup_menu
 from labelsmith.shyft.gui.entry_forms import ManualEntryForm, EditShiftForm
@@ -12,17 +14,20 @@ from labelsmith.shyft.gui.custom_widgets import DictionaryLookupText, CustomTool
 from labelsmith.shyft.constants import CONFIG_FILE, LOGS_DIR
 from pathlib import Path
 
+
 class ShyftGUI:
     def __init__(self, root):
+        logger.debug("Starting ShyftGUI initialization")
         self.root = root
         self.root.title("Shyft")
-        self.time_color = "#A78C7B"
-        self.bg_color = "#FFBE98"
-        self.btn_text_color = "#A78C7B"
-        self.root.configure(bg=self.bg_color)
         self.config = config_manager.load_config()
-        self.timer_topmost = self.config.getboolean("Theme", "timer_topmost", fallback=False)
-        self.timer_topmost_var = tk.BooleanVar(value=self.timer_topmost)
+        self.initialize_from_config()
+        self.active_autolog = None
+        self.time_color = self.config.get('Colors', 'time_color', fallback='#A78C7B')
+        self.bg_color = self.config.get('Colors', 'bg_color', fallback='#FFBE98')
+        self.btn_text_color = self.config.get('Colors', 'btn_text_color', fallback='#A78C7B')
+        self.timer_topmost = self.config.getboolean('Theme', 'timer_topmost', fallback=False)
+        self.timer_window = None
         self.configure_styles()
         self.menu_bar = None
         self.theme_menu = None
@@ -32,10 +37,8 @@ class ShyftGUI:
         self.setup_menu()
         self.create_widgets()
         self.refresh_view()
-        self.timer_window = None
         self.root.resizable(True, False)
         self.root.protocol("WM_DELETE_WINDOW", self.on_quit)
-
         self.task_start_time = None
         self.caffeinate_process = None
 
@@ -60,6 +63,44 @@ class ShyftGUI:
             "highlight.Treeview", background="#FFBE98", foreground="black"
         )
 
+        platform.system
+
+    def initialize_from_config(self):
+        # Add debug logging
+        logger.debug("Starting initialize_from_config")
+        
+        # Load color settings
+        self.time_color = self.config.get('Colors', 'time_color', fallback='#A78C7B')
+        self.bg_color = self.config.get('Colors', 'bg_color', fallback='#FFBE98')
+        self.btn_text_color = self.config.get('Colors', 'btn_text_color', fallback='#A78C7B')
+        
+        # Load and apply theme
+        if platform.system() == "Darwin":
+            theme = self.config.get('Theme', 'selected', fallback='aqua')
+        else:
+            theme = self.config.get('Theme', 'selected', fallback='default')
+        self.style = ttk.Style(self.root)
+        ThemeManager.change_theme(self.style, theme, self.config)
+
+        # Load timer topmost setting
+        self.timer_topmost = self.config.getboolean('Theme', 'timer_topmost', fallback=False)
+        self.timer_topmost_var = tk.BooleanVar(value=self.timer_topmost)
+
+        # Load any other configurable options
+        self.tax_rate = self.config.getfloat('Settings', 'tax_rate', fallback=0.27)
+        
+        # Add debug logging
+        logger.debug(f"Initialized colors - time: {self.time_color}, bg: {self.bg_color}, btn: {self.btn_text_color}")
+        logger.debug("Finished initialize_from_config")
+
+    def reinitialize_timer_window(self):
+        if self.timer_window:
+            self.timer_window.root.destroy()
+        self.timer_window = TimerWindow(tk.Toplevel(self.root), 
+                                        time_color=self.time_color, 
+                                        bg_color=self.bg_color)
+        self.timer_window.root.attributes("-topmost", self.timer_topmost)
+
     def create_widgets(self):
         self.tree = ttk.Treeview(
             self.root,
@@ -71,7 +112,7 @@ class ShyftGUI:
                 "In (hh:mm)",
                 "Out (hh:mm)",
                 "Duration (hrs)",
-                "Tasks completed",  # Add this new column
+                "Tasks completed",
                 "Hourly rate",
                 "Gross pay",
             ),
@@ -87,38 +128,95 @@ class ShyftGUI:
 
         ttk.Button(
             button_frame,
-            text="Manual Entry",
+            text="New Entry",
             command=self.manual_entry,
             style="TButton",
-        ).pack(side="left", expand=True)
-        ttk.Button(
-            button_frame, text="Edit Shift", command=self.edit_shift, style="TButton"
+            underline=0
         ).pack(side="left", expand=True)
         ttk.Button(
             button_frame,
-            text="Delete Shift",
+            text="Edit",
+            command=self.edit_shift,
+            style="TButton",
+            underline=0
+        ).pack(side="left", expand=True)
+        ttk.Button(
+            button_frame,
+            text="Delete",
             command=self.delete_shift,
             style="TButton",
+            underline=0
         ).pack(side="left", expand=True)
         ttk.Button(
             button_frame,
-            text="Refresh View",
+            text="Refresh",
             command=self.refresh_view,
             style="TButton",
+            underline=0
         ).pack(side="left", expand=True)
         ttk.Button(
-            button_frame, text="View Logs", command=self.view_logs, style="TButton"
+            button_frame,
+            text="View Log",
+            command=self.view_logs,
+            style="TButton",
+            underline=5
         ).pack(side="left", expand=True)
         ttk.Button(
-            button_frame, text="Autologger", command=self.autologger, style="TButton"
+            button_frame,
+            text="Autolog",
+            command=self.autolog,
+            style="TButton",
+            underline=0
         ).pack(side="left", expand=True)
         ttk.Button(
-            button_frame, text="Totals", command=self.calculate_totals, style="TButton"
+            button_frame,
+            text="Totals",
+            command=self.calculate_totals,
+            style="TButton",
+            underline=0
         ).pack(side="left", expand=True)
+
         logger.info("Widgets created.")
 
     def setup_menu(self):
+        logger.debug("Starting setup_menu in ShyftGUI")
         setup_menu(self)
+        logger.debug("Finished setup_menu in ShyftGUI")
+
+    def choose_time_color(self):
+        logger.debug("choose_time_color method called")
+        self.choose_color("time_color")
+
+    def choose_bg_color(self):
+        logger.debug("choose_bg_color method called")
+        self.choose_color("bg_color")
+
+    def choose_btn_text_color(self):
+        logger.debug("choose_btn_text_color method called")
+        self.choose_color("btn_text_color")
+
+    def choose_color(self, color_type):
+        logger.debug(f"Starting choose_color for {color_type}")
+        current_color = getattr(self, color_type)
+        logger.debug(f"Current {color_type}: {current_color}")
+        
+        logger.debug("Opening color chooser dialog")
+        color_code = tk.colorchooser.askcolor(
+            title=f"Choose {color_type.replace('_', ' ').title()}",
+            initialcolor=current_color
+        )
+        logger.debug(f"Color chooser returned: {color_code}")
+        
+        if color_code and color_code[1]:
+            logger.debug(f"New color selected: {color_code[1]}")
+            setattr(self, color_type, color_code[1])
+            config_manager.update_color_setting(self.config, color_type, color_code[1])
+            if self.timer_window:
+                self.timer_window.update_colors(self.time_color, self.bg_color, self.btn_text_color)
+        else:
+            logger.debug("No color selected or color chooser cancelled")
+        
+        logger.debug(f"Finished choose_color for {color_type}")
 
     def refresh_view(self):
         for i in self.tree.get_children():
@@ -144,7 +242,18 @@ class ShyftGUI:
         logger.debug("Tree view populated with updated data.")
 
     def manual_entry(self, event=None):
-        ManualEntryForm(self.root, self.refresh_view)
+        def open_manual_entry_dialog():
+            try:
+                dialog = ManualEntryForm(self.root)
+                self.root.wait_window(dialog.window)
+                logger.info(f"Displayed New Entry dialog.")
+            except Exception as e:
+                logger.error(f"Failed to open New Entry dialog: {str(e)}")
+                messagebox.showerror("Error", f"Failed to open New Entry dialog: {str(e)}")
+            finally:
+                self.regain_focus()
+        
+        self.root.after(100, open_manual_entry_dialog)
 
     def edit_shift(self, event=None):
         selected_item = self.tree.selection()
@@ -152,7 +261,20 @@ class ShyftGUI:
             messagebox.showerror("Error", "Please select a shift to edit.")
             return
         selected_id = selected_item[0]
-        EditShiftForm(self.root, selected_id, self.refresh_view)
+
+        def open_edit_dialog():
+            try:
+                dialog = EditShiftForm(self.root, selected_id)
+                self.root.wait_window(dialog.window)
+                logger.info(f"Displayed Entry Editor for {selected_id}.")
+            except Exception as e:
+                logger.error(f"Failed to open Entry Editor for shift {selected_id}: {str(e)}")
+                messagebox.showerror("Error", f"Failed to open Entry Editor: {str(e)}")
+            finally:
+                self.regain_focus(selected_id)
+
+        # Schedule the dialog opening after a short delay
+        self.root.after(100, open_edit_dialog)
         
 
     def delete_shift(self, event=None):
@@ -226,21 +348,59 @@ class ShyftGUI:
 
         self.root.wait_window(dialog)
 
-    def regain_focus(self):
+    def regain_focus(self, specific_item=None):
         self.root.focus_force()
         self.tree.focus_set()
-        if self.tree.get_children():
-            self.tree.selection_set(self.tree.get_children()[0])
-            self.tree.focus(self.tree.get_children()[0])
+        if specific_item:
+            self.tree.selection_set(specific_item)
+            self.tree.focus(specific_item)
+            self.tree.see(specific_item)
+        elif self.tree.get_children():
+            first_item = self.tree.get_children()[0]
+            self.tree.selection_set(first_item)
+            self.tree.focus(first_item)
 
+    # Then in view_logs:
     def view_logs(self, event=None):
-        return ViewLogsDialog(self.root, self.tree, self.refresh_view)
+        selected_item = self.tree.selection()
+        if not selected_item:
+            messagebox.showerror("Error", "Please select a shift to view its log.")
+            return
+        selected_id = selected_item[0]
+        
+        def open_log_dialog():
+            try:
+                dialog = ViewLogsDialog(self.root, selected_id)
+                self.root.wait_window(dialog.window)
+                logger.info(f"Viewed log for shift {selected_id}.")
+            except Exception as e:
+                logger.error(f"Failed to open log file for shift {selected_id}: {str(e)}")
+                messagebox.showerror("Error", f"Failed to open log file: {str(e)}")
+            finally:
+                self.regain_focus(selected_id)
+
+        # Schedule the dialog opening after a short delay
+        self.root.after(100, open_log_dialog)
 
     def calculate_totals(self, event=None):
-        return CalculateTotalsDialog(self.root)
+        selected_item = self.tree.selection()
+        selected_id = selected_item[0]
 
-    def autologger(self, event=None):
-        autologger = Autologger(
+        def open_totals_window():
+            try:
+                dialog = CalculateTotalsDialog(self.root)
+                self.root.wait_window(dialog.window)
+                logger.info(f"Viewed Totals dialog.")
+            except Exception as e:
+                logger.error(f"Failed to open Totals dialog: {str(e)}")
+                messagebox.showerror("Error", f"Failed to open Totals dialog: {str(e)}")
+            finally:
+                self.regain_focus(selected_id)
+        
+        self.root.after(100, open_totals_window)
+        
+    def autolog(self, event=None):
+        self.active_autolog = Autolog(
             self.root,
             self.timer_window,
             self.time_color,
@@ -248,10 +408,10 @@ class ShyftGUI:
             self.btn_text_color,
             self.config,
             self.menu_bar,
-            self.refresh_view,
+            self.regain_focus,
             self.tree
-            )
-        return autologger.start()
+        )
+        return self.active_autolog.start()
 
     def minimize_window(self, event=None):
         self.root.iconify()

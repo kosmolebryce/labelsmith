@@ -3,22 +3,22 @@ from pathlib import Path
 from labelsmith.shyft.constants import (
     APP_NAME, APP_AUTHOR, APP_DATA_DIR,
     CONFIG_FILE, DATA_FILE_PATH, LOGS_DIR
-    )
+)
 
-def configure_logging():
+def configure_logging(debug=False):
     # Create logs directory if it doesn't exist
     LOGS_DIR.mkdir(parents=True, exist_ok=True)
 
     # Create a custom logger
     logger = logging.getLogger('labelsmith')
-    logger.setLevel(logging.DEBUG)  # Set to DEBUG to capture all levels
+    logger.setLevel(logging.DEBUG if debug else logging.INFO)
 
     # Create handlers
     file_handler = logging.FileHandler(LOGS_DIR / "app.log")
     file_handler.setLevel(logging.DEBUG)
     
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.INFO)  # Console shows INFO and above
+    console_handler.setLevel(logging.DEBUG if debug else logging.INFO)
 
     # Create formatters and add it to handlers
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
