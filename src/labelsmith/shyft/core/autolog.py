@@ -46,7 +46,8 @@ class Autolog:
         self.disable_theme_menu = disable_theme_menu
         self.enable_topmost_menu = enable_topmost_menu
         self.disable_topmost_menu = disable_topmost_menu
-        
+        self.shift_start_time = None
+
     def start(self):
         self.disable_theme_menu(self)
         self.enable_topmost_menu(self)
@@ -54,6 +55,7 @@ class Autolog:
         if shared_data is None:  # User cancelled
             return
         self.prevent_sleep()
+        self.shift_start_time = datetime.now()
         self.attempt_task(shared_data)
 
     def collect_shared_data(self):
@@ -275,7 +277,7 @@ class Autolog:
                 "Date": datetime.now().strftime("%Y-%m-%d"),
                 "Model ID": self.collected_data[0]["Model ID"],
                 "Project ID": self.collected_data[0]["Project ID"],
-                "In (hh:mm)": (datetime.now() - elapsed_time).strftime("%H:%M"),
+                "In (hh:mm)": self.shift_start_time.strftime("%H:%M"),
                 "Out (hh:mm)": datetime.now().strftime("%H:%M"),
                 "Duration (hrs)": format_to_two_decimals(duration_hrs),
                 "Hourly rate": format_to_two_decimals(self.collected_data[0]['Hourly Rate of Pay']),
@@ -305,6 +307,7 @@ class Autolog:
             self.timer_window = None
             self.enable_theme_menu(self)
             self.disable_topmost_menu(self)
+            self.parent.callback()
         
     def create_shift_markdown(self, shift_id: str) -> str:
         markdown_content = f"""# `{shift_id}.md`

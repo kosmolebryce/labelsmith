@@ -412,7 +412,7 @@ class ShyftGUI:
             self.menu_bar,
             self.view_menu,
             self.theme_menu,
-            self.regain_focus,
+            self.refresh_view,
             self.tree
         )
         return self.active_autolog.start()
