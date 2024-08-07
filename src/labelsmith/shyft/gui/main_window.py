@@ -220,7 +220,7 @@ class ShyftGUI:
         
         logger.debug(f"Finished choose_color for {color_type}")
 
-    def refresh_view(self):
+    def refresh_view(self, event=None):
         for i in self.tree.get_children():
             self.tree.delete(i)
 
@@ -352,6 +352,7 @@ class ShyftGUI:
 
     def regain_focus(self, specific_item=None):
         self.root.focus_force()
+        self.refresh_view()
         self.tree.focus_set()
         if specific_item:
             self.tree.selection_set(specific_item)

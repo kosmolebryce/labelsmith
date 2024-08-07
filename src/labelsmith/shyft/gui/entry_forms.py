@@ -137,7 +137,6 @@ class EditShiftForm:
             self.validate_entries(updated_data)
             data_manager.update_shift(self.shift_id, updated_data)
             self.close_window()
-            self.callback()
             messagebox.showinfo("Success", "Shift updated successfully.")
         except ValueError as e:
             messagebox.showerror("Error", str(e))

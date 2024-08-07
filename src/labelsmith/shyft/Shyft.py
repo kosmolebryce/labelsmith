@@ -32,6 +32,7 @@ def setup_shortcuts(root, app, modkey):
         "l": app.view_logs,
         "t": app.calculate_totals,
         "q": app.on_quit,
+        "r": app.refresh_view,
     }
 
     for key, func in shortcuts.items():
